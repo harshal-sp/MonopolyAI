@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Monopoly AI — Expectiminimax Game Engine</title>
+    <meta name="description" content="A Monopoly board game where AI agents make intelligent buying, selling, and moving decisions using Expectiminimax game tree search." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2' y='2' width='20' height='20' rx='4' fill='%23171a16'/%3E%3Ccircle cx='8' cy='8' r='1.8' fill='%23c9a45c'/%3E%3Ccircle cx='16' cy='8' r='1.8' fill='%23c9a45c'/%3E%3Ccircle cx='12' cy='12' r='1.8' fill='%23c9a45c'/%3E%3Ccircle cx='8' cy='16' r='1.8' fill='%23c9a45c'/%3E%3Ccircle cx='16' cy='16' r='1.8' fill='%23c9a45c'/%3E%3C/svg%3E" />
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Graduate&family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <!-- SVG icon set: one stroke weight, drawn to match the token pieces -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-die" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.7"/>
+          <circle cx="8.2" cy="8.2" r="1.4" fill="currentColor"/><circle cx="15.8" cy="8.2" r="1.4" fill="currentColor"/>
+          <circle cx="12" cy="12" r="1.4" fill="currentColor"/>
+          <circle cx="8.2" cy="15.8" r="1.4" fill="currentColor"/><circle cx="15.8" cy="15.8" r="1.4" fill="currentColor"/>
+        </symbol>
+        <symbol id="i-arrow" viewBox="0 0 24 24">
+          <path d="M4 12h15M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </symbol>
+        <symbol id="i-exchange" viewBox="0 0 24 24">
+          <path d="M17 4l4 4-4 4M21 8H8M7 20l-4-4 4-4M3 16h13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </symbol>
+        <symbol id="i-flask" viewBox="0 0 24 24">
+          <path d="M9.5 3h5M10.5 3v5.3L4.9 17.5A2 2 0 0 0 6.7 21h10.6a2 2 0 0 0 1.8-3.5L13.5 8.3V3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M7.2 15h9.6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </symbol>
+        <symbol id="i-sound" viewBox="0 0 24 24">
+          <path d="M11 5L6.5 9H3v6h3.5L11 19z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M15 8.8a4.5 4.5 0 0 1 0 6.4M18 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </symbol>
+        <symbol id="i-sound-off" viewBox="0 0 24 24">
+          <path d="M11 5L6.5 9H3v6h3.5L11 19z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M16 9.5l5 5M21 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </symbol>
+        <symbol id="i-help" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M9.3 9.2a2.8 2.8 0 0 1 5.4.9c0 1.9-2.7 2.3-2.7 3.9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+          <circle cx="12" cy="17.2" r="1.1" fill="currentColor"/>
+        </symbol>
+        <symbol id="i-reset" viewBox="0 0 24 24">
+          <path d="M3 5v5h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4.5 14a8 8 0 1 0 1.6-8.4L3 10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </symbol>
+        <symbol id="i-cube" viewBox="0 0 24 24">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M3.3 7L12 12l8.7-5M12 22V12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        </symbol>
+        <symbol id="i-grid" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7.5" height="7.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <rect x="13.5" y="3" width="7.5" height="7.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <rect x="3" y="13.5" width="7.5" height="7.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        </symbol>
+        <symbol id="i-close" viewBox="0 0 24 24">
+          <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </symbol>
+        <symbol id="i-award" viewBox="0 0 24 24">
+          <circle cx="12" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M8.6 13.2L7 22l5-2.6L17 22l-1.6-8.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </symbol>
+      </defs>
+    </svg>
+
+    <div id="app">
+      <!-- Top Navigation Bar -->
+      <header class="top-nav">
+        <div class="nav-left">
+          <div class="logo">
+            <svg class="logo-mark" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M7.2 17.5c-.1-4.6.9-9.7 2.2-11.3a1 1 0 0 1 .8-.4h3.6a1 1 0 0 1 .8.4c1.3 1.6 2.3 6.7 2.2 11.3z"/>
+              <path d="M3.5 18.5h17a1.2 1.2 0 0 1 0 2.4h-17a1.2 1.2 0 0 1 0-2.4z"/>
+            </svg>
+            <span class="logo-text">MONOPOLY <span class="accent-ai">AI</span></span>
+            <span class="badge-tag">Expectiminimax</span>
+          </div>
+        </div>
+
+        <div class="nav-center">
+          <div class="mode-select-wrap">
+            <label for="game-mode-select">Match</label>
+            <select id="game-mode-select" class="nav-select">
+              <option value="human_vs_ai" selected>Human vs AI</option>
+              <option value="ai_vs_ai">AI vs AI — Spectate</option>
+              <option value="ai_4p">4-Agent Royale</option>
+            </select>
+          </div>
+
+          <div class="speed-controls">
+            <label>Speed</label>
+            <div class="btn-group" id="speed-btn-group">
+              <button class="btn-toggle active" data-speed="1">1×</button>
+              <button class="btn-toggle" data-speed="2">2×</button>
+              <button class="btn-toggle" data-speed="5">5×</button>
+              <button class="btn-toggle" data-speed="20">Turbo</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-right">
+          <!-- View Toggle: 3D vs 2D -->
+          <div class="view-toggles">
+            <button class="btn btn-outline active" id="btn-toggle-3d" title="Switch to 3D Board View">3D</button>
+            <button class="btn btn-outline" id="btn-toggle-2d" title="Switch to 2D Classic Grid">2D</button>
+          </div>
+
+          <!-- Camera presets -->
+          <div class="cam-toggles" id="cam-toggles-box">
+            <button class="btn btn-icon" id="btn-cam-iso" title="Isometric 3D View" aria-label="Isometric 3D View"><svg width="16" height="16"><use href="#i-cube"/></svg></button>
+            <button class="btn btn-icon active" id="btn-cam-top" title="Top-Down View" aria-label="Top-Down View"><svg width="16" height="16"><use href="#i-grid"/></svg></button>
+          </div>
+
+          <!-- AI Training Studio Button -->
+          <button class="btn btn-accent" id="btn-open-trainer">
+            <svg width="15" height="15"><use href="#i-flask"/></svg> AI Lab
+          </button>
+
+          <!-- Audio & Rules -->
+          <button class="btn btn-icon" id="btn-toggle-audio" title="Toggle Sound" aria-label="Toggle Sound">
+            <svg class="icon-on" width="16" height="16"><use href="#i-sound"/></svg>
+            <svg class="icon-off" width="16" height="16"><use href="#i-sound-off"/></svg>
+          </button>
+          <button class="btn btn-icon" id="btn-rules" title="Game & AI Architecture Info" aria-label="Rules and architecture"><svg width="16" height="16"><use href="#i-help"/></svg></button>
+          <button class="btn btn-danger-outline" id="btn-reset-game" title="Reset Match"><svg width="14" height="14"><use href="#i-reset"/></svg> Reset</button>
+        </div>
+      </header>
+
+      <!-- Main Game Arena -->
+      <main class="game-arena">
+        <!-- Center Board Viewport -->
+        <section class="board-viewport">
+          <div class="board-toolbar" aria-label="Board controls">
+            <output id="board-tile-info">Point to a tile to see its name. Select a property for its deed.</output>
+            <div class="board-zoom-controls">
+              <button class="btn btn-outline" id="btn-board-zoom-out" aria-label="Zoom board out">−</button>
+              <button class="btn btn-outline" id="btn-board-zoom-in" aria-label="Zoom board in">+</button>
+              <button class="btn btn-outline" id="btn-board-fit">Fit board</button>
+            </div>
+          </div>
+          <div class="board-stage">
+            <!-- 3D Three.js Container -->
+            <div id="three-container" class="board-canvas-layer"></div>
+
+            <!-- 2D CSS Grid Container (hidden by default) -->
+            <div id="twod-container" class="board-canvas-layer hidden"></div>
+          </div>
+
+          <!-- Action controls stay outside the board's play area -->
+          <div class="floating-controls">
+            <!-- Active Turn Banner -->
+            <div class="turn-banner" id="turn-banner"></div>
+
+            <div class="action-btn-row">
+              <button class="btn btn-primary btn-lg" id="btn-roll">
+                <svg width="17" height="17"><use href="#i-die"/></svg> Roll Dice
+              </button>
+              <button class="btn btn-secondary" id="btn-end-turn" disabled>
+                End Turn <svg width="15" height="15"><use href="#i-arrow"/></svg>
+              </button>
+              <button class="btn btn-warning" id="btn-trade">
+                <svg width="15" height="15"><use href="#i-exchange"/></svg> Trade
+              </button>
+            </div>
+          </div>
+
+          <!-- Human Buy Property Prompt Floating Banner -->
+          <div class="buy-prompt-card hidden" id="buy-prompt-box">
+            <div class="buy-prompt-name" id="buy-prompt-name">Boardwalk</div>
+            <div class="buy-prompt-price" id="buy-prompt-price">Unowned · Price $400</div>
+            <div class="buy-prompt-actions">
+              <button class="btn btn-success" id="btn-confirm-buy">Buy Property</button>
+              <button class="btn btn-secondary" id="btn-decline-buy">Pass</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right Side Panel: Player HUDs, Decision Tree, Log -->
+        <aside class="sidebar-panel">
+          <div class="thought-stream-card">
+            <div class="thought-stream-header">
+              <span class="live-dot"></span>
+              <span class="stream-title">Engine Dispatch</span>
+            </div>
+            <div class="thought-stream-body" id="ai-thought-text">
+              Evaluating the game tree — cash position, monopolies, and rent exposure…
+            </div>
+          </div>
+          <!-- Live Scoreboard -->
+          <div class="panel-section">
+            <div class="section-title">
+              <span>Players &amp; Net Worth</span>
+              <span class="target-badge" id="target-balance-badge">Target $4,000</span>
+            </div>
+            <div class="players-list" id="players-list"></div>
+          </div>
+
+          <!-- Live Expectiminimax Game Tree Visualizer -->
+          <div class="panel-section tree-section">
+            <div class="section-title">
+              <span>AI Decision Tree</span>
+              <label class="depth-control">Lookahead
+                <select id="ai-depth-select" aria-label="AI lookahead depth" title="2 ply: buy/pass + AI roll. 3 ply: adds opponent response. 4 ply: adds the next AI roll.">
+                  <option value="2">2 ply</option>
+                  <option value="3" selected>3 ply</option>
+                  <option value="4">4 ply</option>
+                </select>
+              </label>
+            </div>
+            <div class="tree-canvas-wrap" id="tree-canvas-wrap"></div>
+          </div>
+
+          <!-- Activity Log Stream -->
+          <div class="panel-section log-section">
+            <div class="section-title">
+              <span>Match History</span>
+              <span class="status-indicator">Live</span>
+            </div>
+            <div class="game-log" id="game-log"></div>
+          </div>
+        </aside>
+      </main>
+
+      <!-- Property Title Deed Modal -->
+      <div class="modal-backdrop" id="deed-modal">
+        <div class="modal-panel deed-panel">
+          <button class="modal-close" id="btn-close-deed" aria-label="Close deed"><svg width="16" height="16"><use href="#i-close"/></svg></button>
+          <div id="deed-content"></div>
+        </div>
+      </div>
+
+      <!-- Trade Modal Container -->
+      <div id="trade-modal-container"></div>
+
+      <!-- AI Training Studio Modal Container -->
+      <div id="trainer-modal-container"></div>
+
+      <!-- Game Over Modal -->
+      <div class="modal-backdrop" id="gameover-modal">
+        <div class="modal-panel gameover-panel">
+          <div id="gameover-content"></div>
+        </div>
+      </div>
+
+      <!-- Rules & Architecture Info Modal -->
+      <div class="modal-backdrop" id="rules-modal">
+        <div class="modal-panel rules-panel">
+          <div class="modal-header">
+            <h3>The Engine &amp; The Rules</h3>
+            <button class="modal-close" id="btn-close-rules" aria-label="Close rules"><svg width="16" height="16"><use href="#i-close"/></svg></button>
+          </div>
+          <div class="rules-body">
+            <h4>Expectiminimax Game Tree</h4>
+            <p>Monopoly is a stochastic game of alternating player choices (deterministic decision nodes) and random dice rolls (chance nodes). This project models decision-making with an <strong>Expectiminimax game tree</strong>:</p>
+            <ul>
+              <li><strong>Max nodes (AI turn):</strong> the agent evaluates every legal action — buy, pass, build, mortgage, unmortgage, jail strategy.</li>
+              <li><strong>Chance nodes (dice rolls):</strong> outcomes over all eleven roll values (2–12), weighted by the binomial probability P(d) = (6 − |7 − d|) / 36.</li>
+              <li><strong>Min nodes (opponents):</strong> opponent counter-actions and future rent payments.</li>
+            </ul>
+
+            <h4>State Evaluation Heuristic</h4>
+            <p>At the search horizon, states are scored with dynamic weighted features:</p>
+            <code>V(s) = w_cash·Cash + w_prop·Equity + w_mono·Monopolies + w_dev·HouseROI + w_inc·E[Rent] − w_haz·E[Hazard]</code>
+            <p><strong>Dynamic strategy adaptation:</strong> weights shift between the <em>early game</em> (rapid expansion), <em>mid game</em> (completing color sets, the 3-house sweet spot), and <em>late game</em> (liquidity preservation — and staying in jail to avoid opponent hotels).</p>
+
+            <h4>Win Conditions</h4>
+            <p>Win by reaching the <strong>target balance ($4,000)</strong>, or drive every opponent into <strong>bankruptcy</strong> through lethal rent traps.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toast Container -->
+      <div id="toast-container" class="toast-container"></div>
+    </div>
+
+    <!-- Script entry point -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
